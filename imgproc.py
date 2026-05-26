@@ -63,7 +63,7 @@ def extract_grid(im:cv2.typing.MatLike):
 			key=functools.cmp_to_key(lambda a,b: a[0][1]-b[0][1])
 			) for i in range(GRID_SIZE[0])
 	]
-	# Image.fromarray(cv2.cvtColor(out,cv2.COLOR_BGR2RGB)).save("img.png") # DEBUG: output image
+	# Image.fromarray(cv2.cvtColor(out,cv2.COLOR_BGR2RGB)).save("test/img.png") # DEBUG: output image
 	# cv2.imshow("hallo",out)
 	# cv2.waitKey(10000)
 	grid = list(map(lambda a: "".join(map(lambda b: b[1],a)),annotatedGrid))
@@ -71,6 +71,6 @@ def extract_grid(im:cv2.typing.MatLike):
 	return grid
 
 if __name__ == "__main__":
-	img = Image.open("test.png")
+	img = Image.open("test/test.png")
 	processImage(img)
 	print("hooray!")

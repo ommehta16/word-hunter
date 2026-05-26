@@ -1,0 +1,2 @@
+#!/bin/bash
+zip lambda.zip *.py uv.lock .venv pyproject.toml wordslists .python-version

@@ -1,22 +1,27 @@
-from flask import Flask, request
 from PIL import Image
 import io
-import numpy as np
+from typing import Dict, Any
+import base64
+from scrabblesolve import solve
 from imgproc import processImage
+import json
 
-app = Flask(__name__)
+def handler(img_data:bytes) -> str:
+	img = Image.open(io.BytesIO(img_data))
+	grid = processImage(img)
+	img.close()
+	paths = solve(grid)
 
-@app.route("/")
-def hello():
-	return "Hello."
+	return json.dumps(paths)
 
-@app.route("/",methods=["POST"])
-def recieveImage():
-	if "image/" not in request.headers["Content-Type"]:
-		return "", 400
-	processImage(Image.open(io.BytesIO(request.data),'r'))
+def lambda_handler(event:Dict[str,Any], context:Any)->Dict[str,Any]:
+	method = event["http"]["method"]
 	
-	return "Hooray!"
-
-if __name__ == "__main__":
-	app.run()
+	if method != "POST": return { 'statusCode': 400, 'body': "Hiya! Please post instead :)" }
+	body:str = event["body"]
+	img_data = base64.b64decode(body)
+	
+	return {
+		'statusCode': 200,
+		'body': handler(img_data)
+	}

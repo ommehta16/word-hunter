@@ -7,7 +7,7 @@ void setup() {
   Serial.begin(115200);
   auto err = mdns_init();
   if (err) {
-    Serial.println()
+    Serial.println();
   }
   mouse.begin();
 }
@@ -23,7 +23,7 @@ void loop() {
     int spaceInd = a.indexOf(' ');
     
     if (spaceInd == -1) {
-      mouse.click(MouseButton::Forward);
+      startCheat();
       return;
     }
 
@@ -34,6 +34,31 @@ void loop() {
     int dy = atoi(end.c_str());
     Serial.println(a);
 
-    mouse.moveTo(dx,dy,100);
+    mouse.move(dx,dy);
   }
+}
+
+void startCheat() {
+  // mouse.click(MouseButton::Forward);
+  delay(50);
+  mouse.move(0,10);
+  delay(50);
+  mouse.move(-100, 0);
+  delay(50);
+  mouse.move(31,0);
+  delay(50);
+  mouse.move(0,-100);
+  delay(50);
+  mouse.move(0,30);
+  delay(50);
+  mouse.move(0,30);
+  delay(50);
+  mouse.move(0,30);
+  delay(1000);
+  mouse.click(MouseButton::Left);
+  delay(250);
+  mouse.click(MouseButton::Forward);
+  delay(200);
+  mouse.move(-2,-12);
+  delay(50);
 }

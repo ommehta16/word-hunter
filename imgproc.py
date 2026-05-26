@@ -13,6 +13,7 @@ def processImage(img:Image.Image):
 
 	grid = extract_grid(im)
 	print(*grid,sep="\n")
+	return grid
 
 def extract_grid(im:cv2.typing.MatLike):
 	threshed = cv2.extractChannel(im,2)

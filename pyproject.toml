@@ -5,8 +5,10 @@ description = "Word Hunt Bot!"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "boto3>=1.43.20",
     "numpy>=2.4.6",
     "opencv-python>=4.13.0.92",
     "pillow>=12.2.0",
     "pytesseract>=0.3.13",
+    "python-dotenv>=1.2.2",
 ]

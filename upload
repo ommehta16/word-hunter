@@ -1,2 +1,27 @@
 #!/bin/bash
-zip lambda.zip *.py uv.lock .venv pyproject.toml wordslists .python-version
+rm -rf package
+mkdir package
+python -m pip freeze > package/requirements.txt
+cp *.py package
+
+# create the lambda python container, install tesseract and dependencies,
+# then copy the tesseract binary, tessdata and required shared libs into package
+docker run --rm --platform linux/arm64 -v "$PWD":/var/task --entrypoint bash public.ecr.aws/lambda/python:3.14 -c "\
+apt-get update && apt-get install -y --no-install-recommends tesseract-ocr libleptonica-dev libtesseract-dev pkg-config && \
+python -m pip install -r package/requirements.txt -t package && \
+mkdir -p package/bin package/lib package/share/tessdata && \
+cp /usr/bin/tesseract package/bin/ && \
+if [ -d /usr/share/tessdata ]; then cp -a /usr/share/tessdata package/share/; fi && \
+ldd /usr/bin/tesseract | awk '/=>/ {print $(NF-1)}; /\/lib/ {print $1}' | sort -u | xargs -r -I{} cp -v {} package/lib/ || true && \
+echo Done"
+
+rm -f deployment_package*.zip
+cd package
+zip -r ../deployment_package.zip .
+cd ..
+aws s3 cp ./deployment_package.zip s3://wordhuntercode/
+echo "Uploaded to s3!"
+
+rm -rf package
+
+aws lambda update-function-code --function-name wordhunter --s3-bucket wordhuntercode --s3-key deployment_package.zip --no-cli-pager

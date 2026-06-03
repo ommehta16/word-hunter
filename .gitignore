@@ -5,6 +5,10 @@ build/
 dist/
 wheels/
 *.egg-info
+package/
+deployment_package*.zip
+*.DS_Store
+test/*
 
 # Virtual environments
 .venv

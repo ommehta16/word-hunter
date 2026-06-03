@@ -1,5 +1,4 @@
 import os
-from imgproc import processImage
 from PIL import Image
 import time
 
@@ -170,6 +169,8 @@ def wash(paths:list[Path]) -> list[list[tuple[int,int]]]:
 	return out
 
 if __name__ == "__main__":
+	from imgproc import processImage
+	
 	start0 = time.time_ns()
 	board = processImage(Image.open("test.png"))
 	print(f"{(time.time_ns()-start0)/1e6}ms to cv/load")

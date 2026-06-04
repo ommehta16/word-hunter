@@ -40,20 +40,17 @@ void setup() {
 
   esp_err_t err = mdns_init();
   if (err) {
-      printf("MDNS Init failed: %d\n", err);
+      Serial.println("MDNS Init failed " + err);
       return;
   }
 
-  //set hostname
   mdns_hostname_set("cheatmouse");
-  //set default instance
   mdns_instance_name_set("cheatmouse");
 
   server.begin();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
   if (!mouse.isPaired()) {
     delay(10);
     return;

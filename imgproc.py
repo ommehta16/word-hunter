@@ -11,14 +11,16 @@ load_dotenv()
 
 rekognition = None
 
-if "dev" in os.environ and os.environ["dev"] == 'true':
+if "norekognition" in os.environ and os.environ["norekognition"] == 'true':
 	import pytesseract
-	print("Dev mode!")
+	print("No rekognition!")
 else:
-	os.environ["dev"] = 'false'
+	os.environ["norekognition"] = 'false'
 	# https://docs.aws.amazon.com/boto3/latest/reference/services/rekognition.html
 	rekognition = boto3.client('rekognition')
-	print("Prod mode!")
+
+if "dev" not in os.environ:
+	os.environ["dev"] = 'false'
 
 # (`height`,`width`)
 GRID_SIZE = (4,4)
@@ -60,8 +62,7 @@ def extract_grid(im:cv2.typing.MatLike):
 		out = []
 		for i in range(len(rects)):
 			if i not in bad: out.append(rects[i])
-		print(rects)
-		print(out)
+		
 		return out
 	area = lambda rect: abs(rect[2]*rect[3])
 	cmp_area = lambda a,b: area(b)-area(a) # descending area-wise
@@ -89,43 +90,56 @@ def extract_grid(im:cv2.typing.MatLike):
 		top, bottom = max(y-20,0), min(y+h+20,HEIGHT)
 		left, right = max(x-20,0), min(x+w+20,WIDTH)
 
-		tl=min(tl,left)
-		tr=max(tr,right)
-		tt=min(tt,top)
-		tb=max(tb,bottom)
+		tl = min(tl,left)
+		tr = max(tr,right)
+		tt = min(tt,top)
+		tb = max(tb,bottom)
 
-		letter = ""
-		if os.environ["dev"] == 'true':
+		if os.environ["norekognition"] == 'true':
+			letter = ""
 			text = str(pytesseract.image_to_string(threshed[top:bottom,left:right],lang="eng",config=r'--oem 3 --psm 6'))
 
 			if len(text) != 0:
 				letter = text[0].upper()
 			else: letter = "I" # bc I is the only one tesseract doesnt like
-		
-			cv2.rectangle(out,(left,top),(right,bottom),(0,255,0),2) # DEBUG: outline detected characters' aabbs
-			cv2.putText(out,letter,(x,y+10),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),2) # DEBUG: superimpose detected characters
+
+			if os.environ["dev"] == 'true':
+				cv2.rectangle(out,(left,top),(right,bottom),(0,255,0),2) # DEBUG: outline detected characters' aabbs
+				cv2.putText(out,letter,(x,y+10),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),2) # DEBUG: superimpose detected characters
 			letterLocs.append(((y,x),letter))
 	
-	if os.environ["dev"] == 'false':
-		print("------------")
+	if os.environ["norekognition"] == 'false':
+		# print("------------")
 		success, encoded = cv2.imencode('.png',threshed[tt:tb,tl:tr])
 		if not success:
 			raise RuntimeError("Failed to encode image")
-
+		
 		# https://docs.aws.amazon.com/boto3/latest/reference/services/rekognition/client/detect_text.html#
 		detections:list[dict] = rekognition.detect_text(
 			Image={ 'Bytes': encoded.tobytes(), },
 		)["TextDetections"]
 		
-		# TODO: need to figure out what aws is actually outputting here
 		for chunk in detections:
 			text = str(chunk['DetectedText']).replace(" ","")
 			aabb = chunk['Geometry']['BoundingBox']
-			for i in range(len(text)):
-				c=text[i]
-				cx = aabb['Left']+i*aabb['Width']/(len(text)+1)
-				cy = aabb['Top']+aabb['Height']/2
-				letterLocs.append(((cy,cx),c))
+			x1, w1 = map(lambda a: int(a*abs(tr-tl)),(aabb['Left'],aabb['Width']))
+			y1, h1 = map(lambda a: int(a*abs(tb-tt)),(aabb['Top'],aabb['Height']))
+			x1+=tl
+			y1+=tt
+			x, y, w, h = aabb['Left'], aabb['Top'], aabb['Width'], aabb['Height']
+			top, bottom = max(y1,0), min(y1+h1,HEIGHT)
+			left, right = max(x1,0), min(x1+w1,WIDTH)
+
+			if w>0.25: continue
+
+			if os.environ["dev"] == 'true':
+				cv2.rectangle(out,(left,top),(right,bottom),(0,255,0),2) # DEBUG: outline detected characters' aabbs
+				cv2.putText(out,text,(x1,y1+10),cv2.FONT_HERSHEY_SIMPLEX,2,(0,0,255),2) # DEBUG: superimpose detected characters
+			
+			c=text[0]
+			cx = x+w/2
+			cy = y+h/2
+			letterLocs.append(((cy,cx),c))
 
 	letterLocs.sort() # sorts from **top to bottom**
 	annotatedGrid = [
@@ -134,14 +148,15 @@ def extract_grid(im:cv2.typing.MatLike):
 			key=functools.cmp_to_key(lambda a,b: a[0][1]-b[0][1])
 			) for i in range(GRID_SIZE[0])
 	]
-	Image.fromarray(cv2.cvtColor(out,cv2.COLOR_BGR2RGB)).save("test/img.png") # DEBUG: output image
-	cv2.imshow("hallo",out)
-	cv2.waitKey(10000)
+	if (os.environ["dev"] == 'true'):
+		Image.fromarray(cv2.cvtColor(out,cv2.COLOR_BGR2RGB)).save("test/img.png") # DEBUG: output image
+		cv2.imshow("hallo",out)
+		cv2.waitKey(10000)
 	grid = list(map(lambda a: "".join(map(lambda b: b[1],a)),annotatedGrid))
 
 	return grid
 
-if __name__ == "__main__":
+if __name__ == "__main__" and os.environ["dev"] == 'true':
 	i=7
 	img = Image.open(f"test/{i}.png")
 	processImage(img)

@@ -12,3 +12,4 @@ test/*
 
 # Virtual environments
 .venv
+.env

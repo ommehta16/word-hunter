@@ -1,0 +1,8 @@
+boto3
+numpy
+opencv-python
+pillow
+python-dotenv
+pytesseract
+serverless-wsgi
+flask

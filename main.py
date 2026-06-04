@@ -5,25 +5,36 @@ import base64
 from scrabblesolve import solve
 from imgproc import processImage
 import json
+# https://www.serverless.com/plugins/serverless-wsgi#usage-without-serverless
+import serverless_wsgi
+from flask import Flask, request
 
-# def handler(img_data:bytes) -> str:
-# 	img = Image.open(io.BytesIO(img_data))
-# 	grid = processImage(img)
-# 	img.close()
-# 	paths = solve(grid)
+app = Flask(__name__)
 
-# 	return json.dumps(paths)
+@app.route('/',methods=["POST","GET"])
+def handle():
+	if request.method == 'GET': return 'Hiya! Please POST instead :)', 400
 
-def lambda_handler(event:Dict[str,Any], context:Any)->Dict[str,Any]:
-	return {'statusCode': 200, 'body': 'hi!!!'}
+	img_data = request.data
 
-	# method = event["http"]["method"]
+	img = Image.open(io.BytesIO(img_data))
+	# img.save("test.png")
+	grid = processImage(img)
+	img.close()
+	paths = solve(grid)
+
+	''' holy convoluted
+	Paths seperated by `_`
+	Points seperated by `~`
+	Coordinate components seperated by `.`
 	
-	# if method != "POST": return { 'statusCode': 400, 'body': "Hiya! Please post instead :)" }
-	# body:str = event["body"]
-	# img_data = base64.b64decode(body)
-	
-	# return {
-	# 	'statusCode': 200,
-	# 	'body': handler(img_data)
-	# }
+	'''
+	compressed_text = "_".join(map(lambda k: "~".join(map(lambda p: ".".join(map(str,p)),k)),paths))
+
+	return compressed_text, 200
+
+def lambda_handler(event, context):
+	return serverless_wsgi.handle_request(app,event,context)
+
+if __name__ == "__main__":
+	app.run('127.0.0.1',5000)

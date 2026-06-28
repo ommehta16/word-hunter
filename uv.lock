@@ -314,7 +314,7 @@ wheels = [
 ]
 
 [[package]]
-name = "word-predator"
+name = "word-hunter"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
